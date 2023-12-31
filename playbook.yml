@@ -1,0 +1,62 @@
+---
+- name: Install 1st master
+  hosts: master
+  roles:
+  - master
+  tasks:
+  - name: Join K8s cluster as master
+    shell:
+      cmd: "{{ hostvars.{{ groups['master'][0] }}.join_command }} --control-plane"
+    when: hostvars.{{ groups['master'][0] }}.join_command is defined
+    
+  - name: Initiliaze K8s cluster
+    shell:
+      cmd: "kubeadm init --config /tmp/kubeadm-config.yaml"
+    when: hostvars.{{ groups['master'][0] }}.join_command is undefined
+
+  - name: Create .kube directory
+    file:
+      path: $HOME/.kube
+      state: directory
+
+  - name: Copy kubeconfig for kubectl
+    copy:
+      remote_src: true
+      src: /etc/kubernetes/admin.conf
+      dest: $HOME/.kube/config
+      mode: '0755'
+
+  - name: Print join command
+    shell:
+      cmd: "kubeadm token create --print-join-command"
+    register: join_command
+    ignore_errors: true
+    when: hostvars.{{ groups['master'][0] }}.join_command is undefined
+
+- name: Install worker
+  hosts: worker
+  roles:
+  - worker
+  tasks:
+  - name: Join the K8s cluster
+    shell:
+      cmd: "{{ hostvars.{{ groups['master'][0] }}.join_command }}"
+    when: hostvars.{{ groups['master'][0] }}.join_command is defined
+      
+  - name: Create .kube directory
+    file:
+      path: $HOME/.kube
+      state: directory
+    when: hostvars.{{ groups['master'][0] }}.join_command is defined
+
+  - name: Copy kubeconfig for kubectl
+    copy:
+      remote_src: true
+      src: /etc/kubernetes/kubelet.conf
+      dest: $HOME/.kube/config
+      mode: '0755'
+    when: hostvars.{{ groups['master'][0] }}.join_command is defined
+
+
+
+

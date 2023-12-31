@@ -1,0 +1,144 @@
+---
+## Preparation
+- name: Disable firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+    enabled: no
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Put SELinux in permissive mode, logging actions that would be blocked.
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+  when: ansible_facts['distribution'] == "RedHat"
+
+- name: Disable SWAP since kubernetes can't work with swap enabled (1/2)
+  shell:
+    cmd: swapoff -a
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Disable SWAP in fstab since kubernetes can't work with swap enabled (2/2)
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+\s+.*)$'
+    replace: '# \1'
+
+- name: Add Kubernetes repository
+  ansible.builtin.yum_repository:
+    name: kubernetes
+    description: kubernetes repository
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  when: ansible_facts['os_family'] == "RedHat"
+
+
+## Installation
+- name: Install k8s components
+  dnf:
+    name:
+      - kubelet-{{ k8s_version }}
+      - kubeadm-{{ k8s_version }}
+      - kubectl-{{ k8s_version }}
+      - iproute-tc
+    state: latest
+    disable_excludes: kubernetes
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Copy modules config
+  copy:
+    src: modules_k8s.conf
+    dest: /etc/modules-load.d/k8s.conf
+
+- name: Enable module overlay
+  modprobe:
+    name: overlay
+    state: present
+
+- name: Enable module br_netfilter
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: sysctl set net.bridge.bridge-nf-call-iptables
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: '1'
+
+- name: sysctl set net.bridge.bridge-nf-call-ip6tables
+  sysctl:
+    name: net.bridge.bridge-nf-call-ip6tables
+    value: '1'
+
+- name: sysctl set net.ipv4.ip_forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+
+- name: Add repository into repo.d list
+  ansible.builtin.yum_repository:
+    name: docker
+    description: docker repository
+    baseurl: https://download.docker.com/linux/centos/$releasever/$basearch/stable
+    enabled: true
+    gpgcheck: true
+    gpgkey: "https://download.docker.com/linux/centos/gpg"
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install containerd.io
+  dnf:
+    name: containerd.io
+    state: latest
+    update_cache: true
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Backup old config
+  copy:
+    remote_src: true
+    src: /etc/containerd/config.toml
+    dest: /etc/containerd/config.toml.bak
+
+- name: Copy new config
+  copy:
+    src: containerd_config.toml
+    dest: /etc/containerd/config.toml
+
+- name: Enable containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: true
+
+- name: Enable kubelet
+  systemd:
+    name: kubelet
+    state: started
+    enabled: true
+
+- name: Copy kubeadm-config.yaml
+  copy:
+    src: kubeadm-config.yaml
+    dest: /tmp/kubeadm-config.yaml
+
+- name: Initiliaze K8s cluster
+  shell:
+    cmd: "kubeadm init --config /tmp/kubeadm-config.yaml"
+
+- name: Create .kube directory
+  file:
+    path: $HOME/.kube
+    state: directory
+
+- name: Copy kubeconfig for kubectl
+  copy:
+    remote_src: true
+    src: /etc/kubernetes/admin.conf
+    dest: $HOME/.kube/config
+    mode: '0755'
+
+- name: Copy kubeadm-config.yaml
+  copy:
+    src: kubeadm-config.yaml
+    dest: /tmp/kubeadm-config.yaml
