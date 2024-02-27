@@ -26,6 +26,11 @@
       dest: $HOME/.kube/config
       mode: '0755'
 
+  - name: Add local storage class
+    kubernetes.core.k8s:
+      src: local-storage.yaml
+      state: present
+
   - name: Print join command
     shell:
       cmd: "kubeadm token create --print-join-command"
