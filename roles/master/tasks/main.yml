@@ -7,11 +7,16 @@
     enabled: no
   when: ansible_facts['os_family'] == "RedHat"
 
+- name: Disable ufw
+  community.general.system.ufw:
+    state: disabled
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Put SELinux in permissive mode, logging actions that would be blocked.
   ansible.posix.selinux:
     policy: targeted
     state: permissive
-  when: ansible_facts['distribution'] == "RedHat"
+  when: ansible_facts['os_family'] == "RedHat"
 
 - name: Disable SWAP since kubernetes can't work with swap enabled (1/2)
   shell:
