@@ -112,6 +112,13 @@
     state: latest
     update_cache: true
 
+- name: Install containerd.io
+  ansible.builtin.apt:
+    name:
+      - containerd
+    state: latest
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Backup old config
   copy:
     remote_src: true
