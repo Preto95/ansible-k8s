@@ -153,23 +153,23 @@
     src: kubeadm-config.yaml
     dest: /tmp/kubeadm-config.yaml
 
-- name: Initiliaze K8s cluster
-  shell:
-    cmd: "kubeadm init --config /tmp/kubeadm-config.yaml"
+# - name: Initiliaze K8s cluster
+#   shell:
+#     cmd: "kubeadm init --config /tmp/kubeadm-config.yaml"
 
-- name: Create .kube directory
-  file:
-    path: $HOME/.kube
-    state: directory
+# - name: Create .kube directory
+#   file:
+#     path: $HOME/.kube
+#     state: directory
 
-- name: Copy kubeconfig for kubectl
-  copy:
-    remote_src: true
-    src: /etc/kubernetes/admin.conf
-    dest: $HOME/.kube/config
-    mode: '0755'
+# - name: Copy kubeconfig for kubectl
+#   copy:
+#     remote_src: true
+#     src: /etc/kubernetes/admin.conf
+#     dest: $HOME/.kube/config
+#     mode: '0755'
 
-- name: Copy kubeadm-config.yaml
-  copy:
-    src: kubeadm-config.yaml
-    dest: /tmp/kubeadm-config.yaml
+# - name: Copy kubeadm-config.yaml
+#   copy:
+#     src: kubeadm-config.yaml
+#     dest: /tmp/kubeadm-config.yaml
