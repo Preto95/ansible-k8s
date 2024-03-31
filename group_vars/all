@@ -1,2 +1,3 @@
 ---
 k8s_version: 1.28.0
+k8s_version_alt: v1.28
