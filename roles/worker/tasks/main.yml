@@ -7,6 +7,11 @@
     enabled: no
   when: ansible_facts['os_family'] == "RedHat"
 
+- name: Disable ufw
+  community.general.system.ufw:
+    state: disabled
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Put SELinux in permissive mode, logging actions that would be blocked.
   ansible.posix.selinux:
     policy: targeted
@@ -16,7 +21,6 @@
 - name: Disable SWAP since kubernetes can't work with swap enabled (1/2)
   shell:
     cmd: swapoff -a
-  when: ansible_facts['os_family'] == "RedHat"
 
 - name: Disable SWAP in fstab since kubernetes can't work with swap enabled (2/2)
   replace:
@@ -34,6 +38,11 @@
     gpgkey: https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
   when: ansible_facts['os_family'] == "RedHat"
 
+- name: Add APT repository
+  ansible.builtin.apt_repository:
+    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/"{{ k8s_version_alt }}"/deb/ /
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
 
 ## Installation
 - name: Install k8s components
