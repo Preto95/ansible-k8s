@@ -60,10 +60,11 @@
 - name: Install k8s components
   ansible.builtin.apt:
     update_cache: yes
-    pkg:
+    name:
     - kubeadm
     - kubectl
     - kubelet
+    state: latest
   when: ansible_facts['os_family'] == "Debian"
 
 - name: Copy modules config
