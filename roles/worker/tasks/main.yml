@@ -56,6 +56,15 @@
     disable_excludes: kubernetes
   when: ansible_facts['os_family'] == "RedHat"
 
+- name: Install k8s components
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+    - kubeadm
+    - kubectl
+    - kubelet
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Copy modules config
   copy:
     src: modules_k8s.conf
