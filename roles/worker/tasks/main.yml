@@ -56,6 +56,10 @@
     disable_excludes: kubernetes
   when: ansible_facts['os_family'] == "RedHat"
 
+- name: Add Kubernetes gpg keys
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://pkgs.k8s.io/core:/stable:/"{{ k8s_version_alt }}"/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
 - name: Install k8s components
   ansible.builtin.apt:
     update_cache: yes
